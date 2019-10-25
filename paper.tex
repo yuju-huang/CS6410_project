@@ -1,0 +1,40 @@
+\documentclass[twocolumn]{article}
+\usepackage{cite}
+\usepackage[margin=1in]{geometry}
+\usepackage{url}
+\title{My First \LaTeX Paper}
+\author{Insert your name here}
+\date{Cornell University}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Put your abstract here.
+\end{abstract}
+
+% This is a comment.
+Welcome to your first \LaTeX paper!
+
+\section{Bibliography}
+
+Perhaps you're looking to cite Dijkstra's paper on
+THE\cite{DBLP:journals/cacm/Dijkstra68}.  Just put the citation in the bib file
+of the same name as your main file.
+
+\section{Building your \LaTeX}
+
+\begin{itemize}
+\item \texttt{pdflatex latex}
+\item \texttt{pdflatex latex}
+\item \texttt{bibtex latex}
+\item \texttt{pdflatex latex}
+\item \texttt{pdflatex latex}
+\end{itemize}
+
+When in doubt, build it again.
+
+%latex here should be the name of your bibtex file minus '.bib'
+\bibliography{paper}{}
+\bibliographystyle{plain}
+
+\end{document}
