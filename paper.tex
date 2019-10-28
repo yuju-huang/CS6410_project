@@ -3,7 +3,7 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{url}
 \title{OmniVisor - OmniScale Hypervisor for Disaggregated Architecture}
-\author{Yu-Ju Huang}
+\author{Yu-Ju Huang \\{yjhuang@cs.cornell.edu} }
 \date{Cornell University}
 \begin{document}
 \maketitle
@@ -17,23 +17,43 @@ Welcome to your first \LaTeX paper!
 
 \section{Introduction}
 
+The cloud computing has been popular since 2006. Recently, there are growing interests in investigating the limits IaaS (Infrastructure as a Service) has faced. The IaaS is built on top of many servers and managed by a cloud operating system.  Cloud operating system accepts demands from users and allocate resources to them. While the interest in adopting this services is still growing, resource utilization of the CPU and memory is usually not full. The reason behind this under-utilization is that there is always segment issues for allocating CPU and memory. Furthermore, the servers underpinning the IaaS is not a good fit for raising trend of heterogeneous computing as adding various new computing devices into servers is not a trivial process. \par
+    Hardware resource disaggregated architecture is proposed to address these limits. In this architecture, resources are no longer bound with a server. In other words, resources are collected in pools, such as processor pool, memory pool, and storage pool, and there is no boundary among each class of resource. In this setting, the resources can be distributed in the exact number of requested, the unallocated resources can be shutdown. \par
+    While there is an operating system prototype, LegoOS, designed for the disaggregated architecture. We believe the main purpose of disaggregated architecture is to support cloud computing. Designing a hypervisor to support the IaaS functionality is therefore an important thing to be done. \par
+    OmniVisor is a hypervisor in omni scale, for both aggregated and disaggregated architecture, and the goal is to address the limits of IaaS mentioned above. We foresee the practicable disaggregated architecture will not be complete in the recent years, so considering a hypervisor for aggregated architecture is also important. In supporting aggregated architecture, the difference between OmniVisor and previous hypervisors, such as Xen, KVM, and VMware’s products, are where does the computation happen. For previous hypervisors, all the computation is carried out within a server, i.e., an aggregated machine, while for OmniVisor, it makes computation happen across machines, i.e., cross-boundary computation. For example, OmniVisor is able to allocate processors from two servers and give them to a user. This resources separation is transparent to users, they still view it as a machine abstraction and use an operating system (guest operating system from the hypervisor’s point of view) to manage it. \par
+    OmniVisor is a general solution to address limits of IaaS. It can be divided into two parts: support for aggregated and disaggregated architecture. It is certain that designing a hypervisor for disaggregated architecture will be an impactful work. As for the aggregated part, we should ask one question first: can the cross-boundary computation outperform current mechanism? For current design, even though the requested resources are more than the underlying machine can support, the hypervisor can still give out virtual resources by using time-sharing scheduler and storage to simulate processors and memory respectively. So we must first answer the benefits of cross-boundary computation in comparing with the previous design. \par
+    This project will focus on the feasibility of OmniVisor for aggregated architecture. I will implement a prototype and evaluate the performance comparing with current hypervisors. Or at least, evaluate the performance requirement for designing the OmniVisor. For instance, since the cross-boundary computation requires communication through network, the network performance requirement for outperforming current hypervisors will be investigated. \par
 
 \section{Background}
 
+\emph{Poor hardware elastisity}
+
+\emph{Poor failure handling}
+
+
+\subsection{Resource Disaggregation}
+
+
 \begin{itemize}
-\item \texttt{pdflatex latex}
-\item \texttt{pdflatex latex}
-\item \texttt{bibtex latex}
-\item \texttt{pdflatex latex}
 \item \texttt{pdflatex latex}
 \end{itemize}
 
 \section{Related Work}
 
+The datacenter systems have used server-centric architecture for many years where the hardware resources are tightly integrated within one machine. There are some limits on the server-centric architecture including under-utilized resources, weak support for heterogeneous computing, poor failure handling, and hard to achieve hardware resource elasticity. The resource disaggregation architecture is then proposed to tackle these limits. There are some disaggregated architecture proposals include Intel’s Rack Scale Architecture[1], HP’s “The Machine”[2], Facebook’s Disaggregated Rack[3], and IBM’s Composable System[4]. The key enabling factor of the disaggregated architecture is network techniques that whether network performance can meet the performance requirement of bus-connected processors and memory[5]. There are some network techniques enable the possibility of the disaggregated architecture: the high-speed and more scalable network techniques such as RDMA[6], InfiniteBand[7], and new network stack for rack-scale computers[8]; network hardware devices accessing without the need of attaching to processors[9, 10]. \par
+    As for the software sides to manage resources on disaggregated architecture, there are some techniques to target specific types of resources. Support disaggregated memory with transparently access through processor’s memory instructions[11, 12]. Another challenging point to resource disaggregation is how to separate memory from processors as most of the architecture have tightly-coupled processors and memory. Moreover, there are also instructions carrying out memory access. LegoOS[18] emulates the separation of processor and memory by trapping all memory accesses, excluding cache access, and redirect them to access remote memory via page fault handler. As for storage management, accessing the remote disks is already a common practice [13, 14]. \par
+    For operating systems, there are some previous works to manage the distributed resource across multiple machines. Ameoba OS[15, 16] and fos[17] builds a single image microkernel-based OS to run across multiple physical machines, for example, supporting Infrastructure as a Service (IaaS) in the cloud computing context. The motivation is to release application developers from the complexity of resources management. Having many machines to form a huge resource pool, users should be able to use the resources without considering managing them across machines or worry about the location of machines. For example, in the cloud computing context, developers don’t need to consider how many resources and VMs are required for a certain task. \par
+    Both Ameoba OS and fos support allocate resources from multiple machines. One major difference between these two is that, though Ameoba OS supports allocate resources from many machines, once the machine is selected, the process will only use the hardware components on it, e.g., the process cannot use processors and memory on two machines.  fos, on the other hand, does allow one application to use resources from different machines. fos provides the resource elasticity functionality by allowing users to simply call a spawn procedure. The machine where the spawned process runs on, either on the same machine or on a different machine, is handled by the fos. \par
+    Though OmniVisor shares the same goal of Ameoba OS and fos in exposing many machines as a single machine abstraction to users, there are two primary differences. First, OmniVisor considers disaggregated resources, where the processors, memory, and storage are decoupled. This adds one technical challenge for OS/hypervisor design to manage the separated resources. The separation of processors and memory is especially a difficult issue. Second, OmniVisor is a layer between OS and underlying hardware components. This provides more flexibility for users to choose different OSes to use. Moreover, it provides full backward compatibility for the existing OSes and applications. \par
+    LegoOS[18] is a prototype operating system specifically targeting on disaggregated architecture. It proposes a splitkernel OS architecture that split the kernel functionalities into several services. As the hardware resources are separate, the managing software is also split. Each service manages its own hardware component and communicates with each other via network. For instance, there are different software components to manage processors, memory, and storage hardware individually. But same as Ameoba OS and fos, LogoOS design a completely new OS and therefore is weak in backward compatibility and lack of flexibility for users to choose different OSes to use. \par
+
 Perhaps you're looking to cite Dijkstra's paper on
 THE\cite{DBLP:journals/cacm/Dijkstra68}.  Just put the citation in the bib file of the same name as your main file.
 
 \section{Design}
+
+\subsection{Usage Model}
+
 \section{Implementation}
 \section{Evaluation}
 
