@@ -56,6 +56,11 @@ THE\cite{DBLP:journals/cacm/Dijkstra68}.  Just put the citation in the bib file 
 
 \section{Implementation}
 \section{Evaluation}
+In the evaluation section, we try to answer two questions: 1) how many local memory is required to prevent significant performance drop? 2) should the local memory be dedicated or shared between guest OSes? After understanding these two questions, we can make a hint about how a hypervisor does local memory management for disaggregated architecture.
+
+For the first question, the purpose is to know whether the disaggregated architecture can still achieve comparable performance even most of the memory stay remotely. We run workloads on one virtual machine once at a time and vary the local memory size for each run. The baseline is to run the workloads using all memory as local memory. We try to find one size setting that can achieve ~90\% of the baseline performance.
+
+As for the second question, we try to know that if local memory is not enough for multiple virtual machines, will using shared memory compromise the performance isolation between virtual machines too much. And whether using dedicated memory cause under-utilization issue. For the experiment, we run workloads on multiple virtual machines. The primary control variable is enable shared or dedicated memory and to observe the performance variation.
 
 %latex here should be the name of your bibtex file minus '.bib'
 \bibliography{paper}{}
