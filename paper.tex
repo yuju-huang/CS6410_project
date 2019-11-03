@@ -51,10 +51,38 @@ Perhaps you're looking to cite Dijkstra's paper on
 THE\cite{DBLP:journals/cacm/Dijkstra68}.  Just put the citation in the bib file of the same name as your main file.
 
 \section{Design}
+In this section, we first discuss the application model. In particular, do applications or guest OSes know there are running on top of disaggregated architecture? After introducing the application model, our simulation approach is described.
 
-\subsection{Usage Model}
+\subsection{Application Model}
+One of our primary reasons for building a hypervisor for disaggregated architecture is it provides the benefits for legacy applications and guest OSes. The softwares running one traditional architecture are not expected to make any modification. With the hypervisor, we look forward to more adoption of disaggregated architecture. Moreover, we think it's the systems that need to adapt the architecture changes rather than applications. Our hypervisor can also guide the disaggregated hardware design, especially the resource disaggregation is in a very beginning stage.
+
+\subsection{Target Architecture}
+For disaggregated architecture, all hardware computing resources such as processors, memory, and storage are separately located. Though processors and memory are separate, we assume there are still a few amount of memory stay with the processors. This assumption is reasonable given the network speed still not catches on the processor-memory performance requirement\cite{NetworkRequirement} and datacenter applications usually show great temporal data locality\cite{NNLoad,MapReduceLoad}. So in this paper, the memory components in our target architecture include local and remote memory.
+
+FIGURE for cpu-blade, local memory, remote memory.
+
+\subsection{Simulation Approach}
+1. Simulate local/remote memory using the main memory of a desktop.
+In this paper, we use one machine and its main memory to simulate the local and remote memory. The main memory will be divided into two region, local and remote memory regions. The size of local memory region is changeable in order to do analysis on what local memory size is a better design for disaggregated architecture.
+
+2. Page managemet (region separation)
+We manage the page table to separate the main memory as for simulating local and remote memory on the disaggregated architecture. Only the memory address to the local memory region is valid, accessing other address will cause a page fault. In the page fault handler, we will first check whether the page stays on the remote memory region and copy the data into local memory region if so. Otherwise, a storage access for reading the data into remote memory region, and then copy the data into local memory region. Local page eviction, page table entry invalidation, and TLB invalidation will also be executed to guarantee correctness. Moreover, we will execute a intentional wait in the page fault handler to simulate the latency for fetching a remote memory via network in the disaggregated architecture. The waiting time is a configurable variable in order to see in which level of the latency is acceptable for achieving comparable performance with monolithic architecture.
+
+3. Page fault handling
+
+FIGURE for local and remote memory region.
+
+\subsection{Dedicated Local Memory}
+In this paper, we explore the possibility of providing dedicated local memory to each virtual machine and compare it with the the shared local memory policy to see which is a better policy for disaggregated architecuture.
+
+For shared local memory, we simply make the whole local memory region shared by multiple virtual machines and use the original page replacement policy implemented in the hypervisor to choose the victim to be evicted. So the victim page might be a page of any virtual machine.
+
+Dedicated local memory, on the other hand, we divided the whole local memory region and assign each sub-region to each virtual machine equally. Whenever a page needs to be evicted, only the page in the sub-region owned by the virtual machine causing the page fault will become a victime. The process will not evict a page in other virtual machines' local memory region.
+
+FIGURE of shared/dedicated page eviction
 
 \section{Implementation}
+
 \section{Evaluation}
 In the evaluation section, we try to answer two questions: 1) how many local memory is required to prevent significant performance drop? 2) should the local memory be dedicated or shared between guest OSes? After understanding these two questions, we can make a hint about how a hypervisor does local memory management for disaggregated architecture.
 
