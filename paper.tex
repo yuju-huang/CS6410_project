@@ -5,16 +5,20 @@
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{url}
-\title{OmniVisor - OmniScale Hypervisor for Disaggregated Architecture}
+\title{Explore Local Memory Design for Building Hypervisor on Resource Disaggregated Architecture}
 \author{Yu-Ju Huang}
 \date{Cornell University}
 \begin{document}
 \maketitle
 
 \begin{abstract}
-Put your abstract here.
+Resource disaggregation is a new trend for building datacenter as it solves many limitations of traditional monolithic server architecture. Building a hypervisor can provide full compability to enable legacy applications to run on disaggregated architecture. Furthermore, virtualization functionality is usually an important feature a datacenter should possess, to support Infrastructure as a Service (IaaS) for instance.
+
+This work explores the local memory design choices for building a hypervisor on disaggregated architecture. As in disaggregated architecture, main memory stay remotely instead of locating with processors, the management of local memory will be the key system performance. We try to know how many local memory is enough for running a virtual machine to achieve comparable performance in monolithic architecture. Another unclear thing is that, for running multiple virtual machines, should the local memory be dedicated or shared.
+
 \end{abstract}
 
+% Figure of monolithic architecture and disaggregared architecture
 \iffalse
 \begin{figure*}[h!]
   \subcaptionbox{Monolithic architecture, hardware components are bounded within a machine.\label{fig:monolithic}}[.3\textwidth]{\includegraphics[height=.2\textheight,width=.3\textwidth]{figures/monolithic.png}}
