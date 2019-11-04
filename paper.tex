@@ -130,6 +130,14 @@ The datacenter systems have used server-centric architecture for many years wher
      \label{fig:local memory architecture}
 \end{figure*}
 
+% Figure for page fault handling
+\begin{figure*}[h!]
+     \centering
+     \includegraphics[width=\linewidth,height=.3\textheight]{figures/page_fault_flow.png}
+     \caption{Page fault flow to simulate remote memory and remote storage access.}
+     \label{fig:page fault flow}
+\end{figure*}
+
 \section{Design}
 In this section, we first discuss the application model. In particular, do applications or guest OSes know there are running on top of disaggregated architecture? After introducing the application model, our simulation approach is described.
 
@@ -147,6 +155,16 @@ For shared local memory, we simply make the whole local memory region shared by 
 Dedicated local memory, on the other hand, we divided the whole local memory region and assign each sub-region to each virtual machine equally. Whenever a page needs to be evicted, only the page in the sub-region owned by the virtual machine causing the page fault will become a victime. The process will not evict a page in other virtual machines' local memory region.
 
 \section{Implementation}
+
+We implement our simulation framework by extending Xen hypervisor. The key is how to manipulate page table and page fault correctly to correctly simulate the behavior of local and remote menry of disaggregated architecture. Before going to the implementation details, we descripe some terminologies related to address translation that will show in the following article.
+
+\subsection{Address Translation in a Virtualized Environment}
+In a virtualized environment, there are three software layers: guest applications, guest OSes, and hypervisor. There are also three address spaces: guest virtual address (GVA), guest physical address (GPA), and machine physical address (MPA). GVA is the address issued by executing guest applications and guest OSes. And the guest's page table will translate the GVA into GPA. While in a non-virtualized environment, the GPA is actually the final physical address and is valid to be used to access memory. In a virtualized environment, on the other hand, the GPA needs a further translate into MPA and then is able to access the memory. The translation from GPA to MPA is handed by page table maintained by hypervisor.
+
+\subsection{Simulating Local/Remote Memory}
+The key idea is to separate main memory of a server into local and remote memory region. It's worthy to noting that the region separation are from the MPA's viewpoint. Guest applications and OSes are allowed to access the local memory region, otherwise a page fault comes. If local memory is not enough, a page in the local memory region is evicted into remote memory region such that a memory request can be made to local memory region. In the local page eviction process, the correspond page table entry (PTE) is updated to point the remote memory region and is marked unreadable to cause further page fault. Corresponding TLB is flushed to assure correctness.
+
+The detailed page fault flow is depicted in Fig \ref{fig: page fault flow}. When a page fault happens, this implies that a remote memory is accessed. We do a wait in the fault handler to simulate the remote memory access latency. If the page is not in the remote memory region, a storage access is made, and incurs a wait to simulate remote storage access. Either the page in remote memory region or need a storage, the data will end up being cached in the remote memory region. Then the page is copied to local region and followed by a PTE updated to make future access hit the page in local memory region as well a TLB flush. Similar as previous paragraph described, if a page eviction happens, it comes with a PTE update and TLB flushed for that victim page.
 
 \section{Evaluation}
 In the evaluation section, we try to answer two questions: 1) how many local memory is required to prevent significant performance drop? 2) should the local memory be dedicated or shared between guest OSes? After understanding these two questions, we can make a hint about how a hypervisor does local memory management for disaggregated architecture.
