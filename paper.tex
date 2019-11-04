@@ -32,19 +32,30 @@ This work explores the local memory design choices for building a hypervisor on 
      \centering
      \captionsetup[subfigure]{position=b}
      \begin{subfigure}[b]{0.28\textwidth}
-         \includegraphics[height=.2\textheight]{figures/monolithic.png}
+         \centering
+         \includegraphics[height=.15\textheight]{figures/monolithic.png}
          \caption{Monolithic architecture, hardware components are bounded within a machine.}
          \label{fig:monolithic architecture}
      \end{subfigure}
      \hfill
      \begin{subfigure}[b]{0.68\textwidth}
-         \includegraphics[height=.2\textheight]{figures/disaggregated.png}
+         \centering
+         \includegraphics[height=.15\textheight]{figures/disaggregated.png}
          \caption{Disaggregated architecture, hardware components are separate: there are CPU-blade, memory-blade, storage-blade. We also assume there is local memory located with CPU}
          \label{fig:disaggregated architecture}
      \end{subfigure}
      \caption{Monolithic architecture and disaggregated architecture.}
      \label{fig:architecture}
 \end{figure*}
+
+% Figure for memory hierarchy
+\begin{figure}[h!]
+     \centering
+     \includegraphics[width=\linewidth,height=.15\textheight]{figures/memory_hierarchy.png}
+     \caption{Memory hierarchy of disaggregated architecture.}
+     \label{fig:memory hierarchy}
+\end{figure}
+
 
 \section{Introduction}
 
@@ -55,6 +66,8 @@ Hardware resource disaggregated architecture is proposed to address these limits
 While there is an operating system prototype, LegoOS\cite{LegoOS}, designed for the disaggregated architecture. We believe the main purpose of disaggregated architecture is to support cloud computing. Designing a hypervisor to support the IaaS functionality is therefore an important thing to be done.
 
 For disaggregated architecture, all hardware computing resources such as processors, memory, and storage are separately located. Though processors and memory are separate, we assume there are still a few amount of memory stay with the processors. This assumption is reasonable given the network speed still not catches on the processor-memory performance requirement\cite{Network_requirement} and datacenter applications usually show great temporal data locality\cite{NN_load,MapReduce_load}. So in this paper, the memory components in our target architecture include local and remote memory as depicted in Fig \ref{fig:disaggregated architecture}.
+
+Also, we assume a hierarchical memory architecture. As shown in  Fig \ref{fig:memory hierarchy}, there are CPU cache, local memory, remote memory, and remote storage. The CPU access latency is shorter as as the layer grows up and the capacity is larger as the layer goes down. The interaction between each layer can only happen with the one's upper or lower layer. Cross-layer interaction is not allowed. Though a flat memory architecture is also a possible design to implement disaggregated architecture, we keep a simple model for better answering our problems.
 
 This work is a pre-step before going into the design of hypervisor as there are some unclear questions about local memory on disaggregated architecture needed to be answered. We focus on local memory since it makes huge impact in the disaggregated architecture as the main memory stay remotely and has higher latency. First thing we explore is that, how many local memory is enough for running a virtual machine and to achieve comparable performance? Second, for running multiple virtual machines, should the local memory be dedicated or shared? This work uses a simulation approach to evaluate the performance of applications and try to answer the above questions.
 
@@ -97,19 +110,19 @@ The datacenter systems have used server-centric architecture for many years wher
      \centering
      \captionsetup[subfigure]{position=b}
      \begin{subfigure}[b]{\textwidth}
-         \includegraphics[height=.05\textheight,width=\linewidth]{figures/memory_region.png}
+         \includegraphics[height=.025\textheight,width=\linewidth]{figures/memory_region.png}
          \caption{Separate physical main memory into local (slash-filled) and remote memory resgions.}
          \label{fig:local memory regions}
      \end{subfigure}
      \hfill
      \begin{subfigure}[b]{\textwidth}
-         \includegraphics[height=.1\textheight,width=\linewidth]{figures/shared_local_mem.png}
+         \includegraphics[height=.05\textheight,width=\linewidth]{figures/shared_local_mem.png}
          \caption{The four VMs, blue colered, share the local memory region. It's possible that guest physical address of two VMs end up mapping to the same machine physical address, VM2 and VM3 for example.}
          \label{fig:shared local memory}
      \end{subfigure}
      \hfill
      \begin{subfigure}[b]{\textwidth}
-         \includegraphics[height=.1\textheight,width=\linewidth]{figures/dedicated_local_mem.png}
+         \includegraphics[height=.05\textheight,width=\linewidth]{figures/dedicated_local_mem.png}
          \caption{The four VMs, blue colered own its own local memory region. These regions are not shared with other VMs.}
          \label{fig:dedicated local memory}
      \end{subfigure}
