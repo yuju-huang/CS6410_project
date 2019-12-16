@@ -143,6 +143,14 @@ LegoOS\cite{LegoOS} is a prototype operating system specifically targeting on di
      \label{fig:page fault flow}
 \end{figure*}
 
+% Figure of physical memory view
+\begin{figure*}[h!]
+     \centering
+     \includegraphics[width=\linewidth]{figures/physical_memory_view.png}
+     \caption{Local and remote memory simulation, a physical view.}
+     \label{fig:physical memory view}
+\end{figure*}
+
 \section{Design}
 In this section, we first discuss the application model. In particular, do applications or guest OSes know there are running on top of disaggregated architecture? After introducing the application model, our simulation approach is described.
 
@@ -160,22 +168,81 @@ For shared local memory, we simply make the whole local memory region shared by 
 Dedicated local memory, on the other hand, we divided the whole local memory region and assign each sub-region to each virtual machine equally. Whenever a page needs to be evicted, only the page in the sub-region owned by the virtual machine causing the page fault will become a victim. The process will not evict a page in other virtual machines' local memory regions.
 
 \section{Implementation}
-We implement our simulation framework by extending Xen hypervisor. The key is how to manipulate page tables and page faults correctly to correctly simulate the behavior of local and remote memory of disaggregated architecture. Before going to the implementation details, we describe some terminologies related to address translation that will show in the following article.
+We implement our simulation framework by extending KVM hypervisor. The key is how to manipulate page tables and page faults correctly to correctly simulate the behavior of local and remote memory of disaggregated architecture. Before going to the implementation details, we describe some terminologies related to address translation that will show in the following article.
 
 \subsection{Address Translation in a Virtualized Environment}
 In a virtualized environment, there are three software layers: guest applications, guest OSes, and hypervisor. There are also three address spaces: guest virtual address (GVA), guest physical address (GPA), and machine physical address (MPA). GVA is the address issued by executing guest applications and guest OSes. And the guest's page table will translate the GVA into GPA. While in a non-virtualized environment, the GPA is actually the final physical address and is valid to be used to access memory. In a virtualized environment, on the other hand, the GPA needs a further translate into MPA and then is able to access the memory. The translation from GPA to MPA is handled by the page table maintained by the hypervisor.
 
 \subsection{Simulating Local/Remote Memory}
-The key idea is to separate the main memory of a server into local and remote memory region. It's worthy of noting that the region separation is from the MPA's viewpoint. Guest applications and OSes are allowed to access the local memory region, otherwise, a page fault comes. If local memory is not enough, a page in the local memory region is evicted into remote memory regions such that a memory request can be made to local memory region. In the local page eviction process, the corresponding page table entry (PTE) is updated to point the remote memory region and is marked unreadable to cause a further page fault. Corresponding TLB is flushed to assure correctness.
+In this section, we descripe the implementation of our simulation framework. The key idea is to separate the main memory of a server into local and remote memory region. It's worthy of noting that the region separation is from the MPA's viewpoint. Guest applications and OSes are allowed to access the local memory region, otherwise, a page fault comes. If local memory is not enough, a page in the local memory region is evicted into remote memory regions such that a memory request can be made to local memory region. In the local page eviction process, the corresponding page table entry (PTE) is updated to point the remote memory region and is marked unreadable to cause a further page fault. Corresponding TLB is flushed to assure correctness.
 
-The detailed page fault flow is depicted in Fig \ref{fig: page fault flow}. When a page fault happens, this implies that remote memory is accessed. We do a wait in the fault handler to simulate the remote memory access latency. If the page is not in the remote memory region, a storage access is made and incurs a wait to simulate remote storage access. Either the page in remote memory region or need a storage access, the data will end up being cached in the remote memory region. Then the page is copied to local region and followed by a PTE updated to make future access hit the page in local memory region as well a TLB flush. Similar to the previous paragraph described, if a page eviction happens, it comes with a PTE update and TLB flushed for that victim page.
+The detailed page fault flow is depicted in Fig \ref{fig:page fault flow}. When a page fault happens, this implies that remote memory is accessed. We do a wait in the fault handler to simulate the remote memory access latency. If the page is not in the remote memory region, a storage access is made and incurs a wait to simulate remote storage access. Either the page in remote memory region or need a storage access, the data will end up being cached in the remote memory region. Then the page is copied to local region and followed by a PTE updated to make future access hit the page in local memory region as well a TLB flush. Similar to the previous paragraph described, if a page eviction happens, it comes with a PTE update and TLB flushed for that victim page.
+
+It's worth noting that \ref{fig:local memory architecture} is a logic view of the local and remote memory layout. The physical view of memory layout should be \ref{fig:physical memory view}. The upper figure shows that the local memory is full. The colored squares represent pages in local memory. When there is one more allocation after local memory is full, a victim, grey-colored, is swapped out, then an allocation, red-colored, is fulfilled.
+                                         
+\subsection{KVM/Qemu Interfaces}                         
+There are two controlling factors for our simulation disaggregated memory simulation: local memory size and network delay. We modify the KVM interface to accept parameters for setting these two factors. A new IOCTL command, KVM\_ENABLE\_DSAG\_MEM\_SIM, is introduced and it takes a struct including local memory size and network delays as an argument. Also, the Qemu side is modified to send this new IOCTL command and pass an argument to KVM. Our modification is based on Linux v5.0.0 and Qemu v3.1.0.
 
 \section{Evaluation}
+
+\subsection{Plan}
 In the evaluation section, we try to answer two questions: 1) how much local memory is required to prevent significant performance drop? 2) should the local memory be dedicated or shared between guest OSes? After understanding these two questions, we can make a hint about how a hypervisor does local memory management for disaggregated architecture.
 
 For the first question, the purpose is to know whether the disaggregated architecture can still achieve comparable performance even most of the memory stay remotely. We run workloads on one virtual machine once at a time and vary the local memory size for each run. The baseline is to run the workloads using all memory as local memory. We try to find a size setting that can achieve ~90\% of the baseline performance.
 
 As for the second question, we try to know that if local memory is not enough for multiple virtual machines, will using shared memory compromise the performance isolation between virtual machines too much. And whether using dedicated memory cause under-utilization issue. For the experiment, we run workloads on multiple virtual machines. The primary control variable is enabling shared or dedicated memory and to observe the performance variation.
+
+% System configuration table
+\begin{table}[h!]
+    \resizebox{\columnwidth}{!}{%
+        \begin{tabular}{|l|l|l|l|}
+        \hline
+               & HW Configuration               & Host  & Guest \\ \hline
+        CPU    & Intel Core i7-6700T @ 2.80 GHz & 8     & 4     \\ \hline
+        Memory & DDR4 @ 2400 MT/s               & 32 GB & 4 GB  \\ \hline
+        \end{tabular}
+    }
+    \caption{System configurations}
+    \label{table:system configuration}
+\end{table}
+
+% Figure of CIFAR-10 result
+\begin{figure}[h!]
+     \centering
+     \includegraphics[width=\linewidth]{figures/cifar10_result.png}
+     \caption{Tensorflow CIFAR-10 result}
+     \label{fig:cifar-10 result}
+\end{figure}
+
+\subsection{Preliminary Result}                            
+We use a single desktop to simulate the disaggregated memory. The system configuration is shown in Table \ref{table:system configuration}. We use TensorFlow to train CIFAR-10 dataset \cite{Tensorflow, CIFAR-10} as our benchmark. All the results run in a virtualized environment, i.e., within a guest OS. The baseline is to run the benchmark on an unmodified hypervisor, which represents benchmarking a traditional architecture. The other results run our modified KVM, which simulates the disaggregated memory behaviors. The result is depicted in Fig \ref{fig:cifar-10 result} and is normalized against the baseline. The x-axis is the two controlling factors, network delay in microsecond unit and local memory size in MB.
+                                         
+The trend of the CIFAR-10 result with respect to network delay is as expected, the time increases as the network delay increases. But the local memory change doesn't show significant differences. And all of the results could actually be viewed as within acceptable error range, around 5\% differences, and have barely discrimination. The reason why there is only a little performance is still under investigation. We provide some observations and possible reasons in the following subsection.
+                                         
+\subsection{Analysis}                                 
+We dump some log to trace the number of pages allocated and those that are swapped out during the guest execution. Before the CIFAR-10 is running, the number of pages allocated is around three thousand. After running the CIFAR-10, the number of pages allocated is increased to four thousand. These pages in total are only 16 MB. This means that a guest only uses around 16 MB memory even after running the CIFAR-10. This is a number that far lower than we expect. The other way to check the memory usage is via Linux's debugfs, via 'cat /proc/PID/statm'. This shows the guest uses around 600,000 pages before running CIFAR-10 and 1,050,000 pages after running CIFAR-10, which are 2.4 GB and 4.2 GB respectively.                                         
+The observation shows that there is a large number of mismatching in our log and Linux's record. Our log and implementation are mainly on one entry of the guest's memory page fault. We guess that there might be other entries of the guest's memory fault and we didn't catch it. For instance, MMIO and shared memory might be going to another entry since they require different page fault handling.
+                                         
+Understanding memory virtualization is a huge task. And understand KVM's memory virtualization implementation is even difficult since there is a lot of optimizations and different paths. We'll work more on understanding the KVM's memory virtualization mechanism and have a better implementation to finish the disaggregated memory simulation.
+                                         
+\section{Conclusion}                                 
+In this work, we use a simulation approach to explore the local memory design for disaggregated architecture, in particular, this paper targets to decide what is the appropriate local size. The implementation is built on top of KVM and most of the modification is on the two-dimension page fault handler. There are still some issues in the implementation so we don't have a good conclusion for the problems we try to answer. But the core skeleton of the simulation framework is finished. I believe it's as well crucial to illustrate what are the future works to we will follow-up.
+                                         
+\section{Future Works}                              
+                                         
+\subsection{Remote Page Pre-fetching}                       
+Data pre-fetching is broadly used for fetching data into CPU caches. In traditional architecture, the pre-fetching for lower memory hierarchy, fetching data from storage to memory, is not so popular for two reasons. First, the cost of storage access is expensive. If the pre-fetching policy makes a wrong decision, the expensive storage access will then be a waste. Second, the memory capacity is much larger than cache so the demands of pre-fetching data into memory are not crucial.
+                                         
+In disaggregated architecture, on the other hand, the above two reasons are no longer exists. In disaggregated architecture, a pre-fetching from remote memory to local memory is network access, which is much faster than storage access in today's techniques. And the local memory capacity in disaggregated architecture is supposed to be small so pre-fetching techniques might be something to reconsider.
+                                         
+\subsection{Local Page Replacement Polity}                    
+When the local memory region is full, we pick a victim to be swapped out in a random manner. Though different page replacement policies might have different determination on the local memory size, the system-level implication paper \cite{Disaggregated_memory2} has a conclusion that using random policy might also be appropriate in the disaggregated setting. But still, there are some workloads that suffer from the random policy. So it's still worth investigating the page replacement design.
+
+\subsection{Direct Remote Memory Computation}                   
+When the network speed becomes faster and faster. It might be possible that some data operation can be done on the remote memory directly without bringing the data to local memory first. Some emerging techniques such as process-in-memory (PIM) will underpin this statement. The future work will include exploring the state-of-the-art PIM techniques, and figure what kind of workloads is the best fit for this direct remote memory operation. If we can have a conclusion about the appropriate workloads for PIM, the following problems will be how to dynamically detect or adjust the memory operations to use PIM for direct remote memory operations.
+                                         
+\subsection{Benchmarking Real-world Workloads}                  
+As the disaggregated architecture will be most adopted in datacenter. More datacenter workloads and benchmarks analysis are crucial and more close to real-world's attention. So our evaluation should include datacenter workloads. The network requirement paper \cite{Network_requirement} gives comprehensive workloads for further benchmarking and analyzing.
 
 %latex here should be the name of your bibtex file minus '.bib'
 \bibliography{paper}{}
