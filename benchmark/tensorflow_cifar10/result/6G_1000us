@@ -1,0 +1,30 @@
+Training spent 185729 ms.
+10000/1 - 3s - loss: 1.3154 - accuracy: 0.5384
+0.5384
+Training spent 234774 ms.
+10000/1 - 2s - loss: 1.3887 - accuracy: 0.5485
+0.5485
+Training spent 153217 ms.
+10000/1 - 2s - loss: 1.2213 - accuracy: 0.5279
+0.5279
+Training spent 102257 ms.
+10000/1 - 2s - loss: 1.1590 - accuracy: 0.5388
+0.5388
+Training spent 70164 ms.
+10000/1 - 2s - loss: 1.3119 - accuracy: 0.5586
+0.5586
+Training spent 57131 ms.
+10000/1 - 2s - loss: 1.0917 - accuracy: 0.5556
+0.5556
+Training spent 44722 ms.
+10000/1 - 2s - loss: 1.2081 - accuracy: 0.5498
+0.5498
+Training spent 36503 ms.
+10000/1 - 2s - loss: 1.1040 - accuracy: 0.5639
+0.5639
+Training spent 32420 ms.
+10000/1 - 2s - loss: 1.1780 - accuracy: 0.5367
+0.5367
+Training spent 29387 ms.
+10000/1 - 2s - loss: 1.4165 - accuracy: 0.5266
+0.5266

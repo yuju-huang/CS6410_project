@@ -1,0 +1,15 @@
+Training spent 90692 ms.
+10000/1 - 2s - loss: 1.0598 - accuracy: 0.5470
+0.547
+Training spent 96076 ms.
+10000/1 - 2s - loss: 1.1156 - accuracy: 0.5672
+0.5672
+Training spent 53819 ms.
+10000/1 - 2s - loss: 1.3095 - accuracy: 0.5497
+0.5497
+Training spent 35407 ms.
+10000/1 - 2s - loss: 1.1862 - accuracy: 0.5662
+0.5662
+Training spent 28091 ms.
+10000/1 - 2s - loss: 1.2136 - accuracy: 0.5352
+0.5352
